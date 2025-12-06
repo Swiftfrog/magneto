@@ -14,3 +14,6 @@ scheduler.db
 # 你的个人配置 (可选，或者保留 example)
 # configs/*.yaml
 # !configs/example.yaml
+
+.DS_Store
+**/.DS_Store
