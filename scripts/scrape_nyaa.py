@@ -45,7 +45,9 @@ class NyaaScraper:
         date_tag = item_row.select_one(self.selectors['publish_date'])
         raw_date_str = date_tag.get('data-timestamp') if date_tag and date_tag.get('data-timestamp') else (date_tag.get_text(strip=True) if date_tag else None)
         details['date'] = normalize_date(raw_date_str)
-        number_match = re.search(r'([A-Z0-9]+(?:-[A-Z0-9]+)*-\d+)', details['title'], re.IGNORECASE)
+        # number_match = re.search(r'([A-Z0-9]+(?:-[A-Z0-9]+)*-\d+)', details['title'], re.IGNORECASE)
+        # 允许下划线作为分隔符，并允许结尾包含字母（适配 PACO, CARIB, 10MU 等格式）
+        number_match = re.search(r'([A-Z0-9]+(?:[_\-][A-Z0-9]+)+)', details['title'], re.IGNORECASE)
         details['item_number'] = number_match.group(1).upper() if number_match else ''
         details['cover_image_url'] = ''
         tags = parse_tags_from_title(details['title'], self.tag_rules)
