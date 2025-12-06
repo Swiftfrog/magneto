@@ -223,6 +223,7 @@
             {% set _ = args.pop('page', None) %}
             
             <ul>
+                {# --- 上一页 --- #}
                 {% if page > 1 %}
                     <li><a href="{{ url_for('index', page=1, **args) }}">首页</a></li>
                     <li><a href="{{ url_for('index', page=page-1, **args) }}">‹</a></li>
@@ -231,26 +232,50 @@
                     <li><a href="#" role="button" class="secondary outline" disabled>‹</a></li>
                 {% endif %}
             </ul>
+
             <ul>
-                {% set show_ellipsis_start = false %}
-                {% set show_ellipsis_end = false %}
-                {% for p in range(1, total_pages + 1) %}
-                    {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                {# --- 逻辑：始终显示第1页，中间显示当前页前后2页，最后显示末页 --- #}
+
+                {# 1. 第一页 #}
+                {% if page == 1 %}
+                    <li><a href="#" role="button" class="secondary outline" aria-current="page">1</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('index', page=1, **args) }}">1</a></li>
+                {% endif %}
+
+                {# 2. 左侧省略号 (如果当前页 > 4，说明 1 和 当前窗格之间有间隙) #}
+                {% if page > 4 %}
+                    <li><span>...</span></li>
+                {% endif %}
+
+                {# 3. 中间窗格 (当前页 - 2 到 当前页 + 2) #}
+                {% for p in range(page - 2, page + 3) %}
+                    {% if p > 1 and p < total_pages %}
                         {% if p == page %}
                             <li><a href="#" role="button" class="secondary outline" aria-current="page">{{ p }}</a></li>
                         {% else %}
                             <li><a href="{{ url_for('index', page=p, **args) }}">{{ p }}</a></li>
                         {% endif %}
-                    {% elif p < page and not show_ellipsis_start %}
-                        {% set show_ellipsis_start = true %}
-                        <li>...</li>
-                    {% elif p > page and not show_ellipsis_end %}
-                        {% set show_ellipsis_end = true %}
-                        <li>...</li>
                     {% endif %}
                 {% endfor %}
+
+                {# 4. 右侧省略号 (如果当前页 < 总页数 - 3，说明当前窗格和末页之间有间隙) #}
+                {% if page < total_pages - 3 %}
+                    <li><span>...</span></li>
+                {% endif %}
+
+                {# 5. 最后一页 #}
+                {% if total_pages > 1 %}
+                    {% if page == total_pages %}
+                        <li><a href="#" role="button" class="secondary outline" aria-current="page">{{ total_pages }}</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('index', page=total_pages, **args) }}">{{ total_pages }}</a></li>
+                    {% endif %}
+                {% endif %}
             </ul>
+
             <ul>
+                {# --- 下一页 --- #}
                 {% if page < total_pages %}
                     <li><a href="{{ url_for('index', page=page+1, **args) }}">›</a></li>
                     <li><a href="{{ url_for('index', page=total_pages, **args) }}">末页</a></li>
@@ -259,11 +284,12 @@
                     <li><a href="#" role="button" class="secondary outline" disabled>末页</a></li>
                 {% endif %}
             </ul>
+
             <div class="page-jump">
                 <form method="GET" action="{{ url_for('index') }}">
                     {% for key, value in args.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
-                    <input type="number" name="page" min="1" max="{{ total_pages }}" placeholder="页码..." aria-label="页码" style="width: 100px;">
-                    <button type="submit" class="outline">跳转</button>
+                    <input type="number" name="page" min="1" max="{{ total_pages }}" placeholder="页码" aria-label="页码" style="width: 80px;">
+                    <button type="submit" class="outline">Go</button>
                 </form>
             </div>
         </nav>
