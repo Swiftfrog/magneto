@@ -8,7 +8,8 @@
     <style>
         :root { --font-size: 14px; }
         body { padding: 1rem 2rem; }
-        .filter-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; align-items: end;}
+        /* 优化筛选栏布局，适应新增的控件 */
+        .filter-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; align-items: end;}
         .links a { margin-right: 0.75rem; font-size: 0.9em; text-decoration: none; white-space: nowrap; }
         .links a:hover { text-decoration: underline; }
         .pagination { margin-top: 2rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;}
@@ -26,7 +27,6 @@
             gap: 0.5rem;
             align-items: end;
         }
-        /* 强制按钮内文字不换行 */
         .button-group button, .button-group a[role="button"] {
             white-space: nowrap;
         }
@@ -39,7 +39,6 @@
             padding-top: 10px;
             border-top: 1px solid #eee;
         }
-        /* 危险按钮样式 */
         .btn-danger {
             background-color: #d32f2f;
             border-color: #c62828;
@@ -83,10 +82,12 @@
             <summary>筛选与排序</summary>
             <form action="/" method="get" class="filter-panel">
                 <input type="hidden" name="db" value="{{ current_db }}">
+
                 <div>
                     <label for="q_term">搜索词</label>
                     <input type="search" id="q_term" name="q_term" placeholder="搜索..." value="{{ search_term }}">
                 </div>
+                
                 <div>
                     <label for="q_scope">搜索范围</label>
                     <select id="q_scope" name="q_scope">
@@ -95,6 +96,7 @@
                         <option value="item_number" {% if search_scope == 'item_number' %}selected{% endif %}>仅编号</option>
                     </select>
                 </div>
+                
                 <div>
                     <label for="f_source">来源</label>
                     <select id="f_source" name="f_source">
@@ -104,6 +106,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                
                 <div>
                     <label for="f_tag">标签</label>
                     <select id="f_tag" name="f_tag">
@@ -126,23 +129,35 @@
                 <div><label for="start_date">起始日期</label><input type="date" id="start_date" name="start_date" value="{{ start_date }}"></div>
                 <div><label for="end_date">结束日期</label><input type="date" id="end_date" name="end_date" value="{{ end_date }}"></div>
 
-        <div>
-            <label for="sort_by">排序依据</label>
-            <select id="sort_by" name="sort_by">
-                <option value="publish_date" {% if sort_by == 'publish_date' %}selected{% endif %}>按发布日期</option>
-                <option value="added_at" {% if sort_by == 'added_at' %}selected{% endif %}>按添加时间</option>
-                <option value="title" {% if sort_by == 'title' %}selected{% endif %}>按标题</option>
-                <option value="item_number" {% if sort_by == 'item_number' %}selected{% endif %}>按编号</option>
-                <option value="source" {% if sort_by == 'source' %}selected{% endif %}>按来源</option>
-                <option value="file_size" {% if sort_by == 'file_size' %}selected{% endif %}>按文件大小</option>
-                <option value="workflow_status" {% if sort_by == 'workflow_status' %}selected{% endif %}>按工作流状态</option>
-            </select>
-        </div>
-
+                <div>
+                    <label for="sort_by">排序依据</label>
+                    <select id="sort_by" name="sort_by">
+                        <option value="publish_date" {% if sort_by == 'publish_date' %}selected{% endif %}>按发布日期</option>
+                        <option value="added_at" {% if sort_by == 'added_at' %}selected{% endif %}>按添加时间</option>
+                        <option value="title" {% if sort_by == 'title' %}selected{% endif %}>按标题</option>
+                        <option value="item_number" {% if sort_by == 'item_number' %}selected{% endif %}>按编号</option>
+                        <option value="source" {% if sort_by == 'source' %}selected{% endif %}>按来源</option>
+                        <option value="file_size" {% if sort_by == 'file_size' %}selected{% endif %}>按文件大小</option>
+                        <option value="workflow_status" {% if sort_by == 'workflow_status' %}selected{% endif %}>按工作流状态</option>
+                    </select>
+                </div>
+                               
                 <div><label for="sort_order">排序顺序</label><select id="sort_order" name="sort_order">
                     <option value="DESC" {% if sort_order == 'DESC' %}selected{% endif %}>降序</option>
                     <option value="ASC" {% if sort_order == 'ASC' %}selected{% endif %}>升序</option>
                 </select></div>
+                
+                <div>
+                    <label for="per_page">每页显示</label>
+                    <select id="per_page" name="per_page">
+                        <option value="50" {% if per_page == 50 %}selected{% endif %}>50条</option>
+                        <option value="100" {% if per_page == 100 %}selected{% endif %}>100条</option>
+                        <option value="200" {% if per_page == 200 %}selected{% endif %}>200条</option>
+                        <option value="500" {% if per_page == 500 %}selected{% endif %}>500条</option>
+                        <option value="1000" {% if per_page == 1000 %}selected{% endif %}>1000条</option>
+                    </select>
+                </div>
+                
                 <div class="button-group">
                     <button type="submit">应用筛选</button>
                     <button type="button" class="secondary" onclick="window.location.href='{{ url_for('index', db=current_db) }}'">重置筛选</button>
@@ -223,7 +238,6 @@
             {% set _ = args.pop('page', None) %}
             
             <ul>
-                {# --- 上一页 --- #}
                 {% if page > 1 %}
                     <li><a href="{{ url_for('index', page=1, **args) }}">首页</a></li>
                     <li><a href="{{ url_for('index', page=page-1, **args) }}">‹</a></li>
@@ -234,21 +248,17 @@
             </ul>
 
             <ul>
-                {# --- 逻辑：始终显示第1页，中间显示当前页前后2页，最后显示末页 --- #}
-
-                {# 1. 第一页 #}
+                {# 分页显示逻辑 #}
                 {% if page == 1 %}
                     <li><a href="#" role="button" class="secondary outline" aria-current="page">1</a></li>
                 {% else %}
                     <li><a href="{{ url_for('index', page=1, **args) }}">1</a></li>
                 {% endif %}
 
-                {# 2. 左侧省略号 (如果当前页 > 4，说明 1 和 当前窗格之间有间隙) #}
                 {% if page > 4 %}
                     <li><span>...</span></li>
                 {% endif %}
 
-                {# 3. 中间窗格 (当前页 - 2 到 当前页 + 2) #}
                 {% for p in range(page - 2, page + 3) %}
                     {% if p > 1 and p < total_pages %}
                         {% if p == page %}
@@ -259,12 +269,10 @@
                     {% endif %}
                 {% endfor %}
 
-                {# 4. 右侧省略号 (如果当前页 < 总页数 - 3，说明当前窗格和末页之间有间隙) #}
                 {% if page < total_pages - 3 %}
                     <li><span>...</span></li>
                 {% endif %}
 
-                {# 5. 最后一页 #}
                 {% if total_pages > 1 %}
                     {% if page == total_pages %}
                         <li><a href="#" role="button" class="secondary outline" aria-current="page">{{ total_pages }}</a></li>
@@ -275,7 +283,6 @@
             </ul>
 
             <ul>
-                {# --- 下一页 --- #}
                 {% if page < total_pages %}
                     <li><a href="{{ url_for('index', page=page+1, **args) }}">›</a></li>
                     <li><a href="{{ url_for('index', page=total_pages, **args) }}">末页</a></li>
@@ -284,11 +291,10 @@
                     <li><a href="#" role="button" class="secondary outline" disabled>末页</a></li>
                 {% endif %}
             </ul>
-
             <div class="page-jump">
                 <form method="GET" action="{{ url_for('index') }}">
                     {% for key, value in args.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
-                    <input type="number" name="page" min="1" max="{{ total_pages }}" placeholder="页码" aria-label="页码" style="width: 80px;">
+                    <input type="number" name="page" min="1" max="{{ total_pages }}" placeholder="页码..." aria-label="页码" style="width: 80px;">
                     <button type="submit" class="outline">Go</button>
                 </form>
             </div>
@@ -297,22 +303,19 @@
     </main>
 
     <script>
-        // 单条删除的辅助函数：创建一个临时的表单并提交
+        // 单条删除逻辑
         function deleteSingleItem(itemId) {
             if (confirm('确认删除此条目吗？')) {
-                // 创建一个隐藏表单来提交 POST 请求
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = "{{ url_for('batch_delete') }}?id=" + itemId; // 通过 URL 参数传递 ID
+                form.action = "{{ url_for('batch_delete') }}?id=" + itemId;
                 
-                // 添加 db_name 字段
                 const dbInput = document.createElement('input');
                 dbInput.type = 'hidden';
                 dbInput.name = 'db_name';
                 dbInput.value = "{{ current_db }}";
                 form.appendChild(dbInput);
 
-                // 添加一个假的 selected_ids 字段，虽然这里用 URL 参数传了，但为了兼容后端逻辑
                 const idInput = document.createElement('input');
                 idInput.type = 'hidden';
                 idInput.name = 'selected_ids';
@@ -324,7 +327,39 @@
             }
         }
 
-        // 剪贴板复制相关代码 (保持原有逻辑)
+        // --- 【新增功能 2】支持 Shift 多选 ---
+        const checkboxes = document.querySelectorAll('input[name="selected_ids"]');
+        let lastChecked = null; // 记录上一次点击的复选框
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('click', function(e) {
+                if (!lastChecked) {
+                    lastChecked = this;
+                    return;
+                }
+
+                // 如果按住了 Shift 键，进行范围选择
+                if (e.shiftKey) {
+                    // 将 NodeList 转换为数组以获取索引
+                    const checkboxArray = Array.from(checkboxes);
+                    const start = checkboxArray.indexOf(this);
+                    const end = checkboxArray.indexOf(lastChecked);
+
+                    // 确定范围的上下界
+                    const [lower, upper] = [Math.min(start, end), Math.max(start, end)];
+
+                    // 遍历范围内的复选框并设为与当前点击框相同的状态
+                    for (let i = lower; i <= upper; i++) {
+                        checkboxes[i].checked = this.checked;
+                    }
+                }
+
+                lastChecked = this; // 更新最后点击的复选框
+            });
+        });
+        // ----------------------------------
+
+        // 剪贴板复制逻辑
         function fallbackCopyTextToClipboard(text, successMessage) {
             const textArea = document.createElement("textarea");
             textArea.value = text;

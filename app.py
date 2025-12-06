@@ -377,6 +377,12 @@ def index():
             sort_by = request.args.get('sort_by', 'publish_date')
             sort_order = request.args.get('sort_order', 'DESC')
 
+            per_page = request.args.get('per_page', 100, type=int)
+            
+            # 限制一下范围，防止恶意输入过大数字炸内存（可选）
+            if per_page not in [50, 100, 200, 500, 1000]:
+                per_page = 100
+
             all_sources = get_all_sources(conn)
             all_tags = database.get_all_tags(db_path)
 
@@ -424,13 +430,13 @@ def index():
                 query += f" ORDER BY {sort_by} {sort_order}"
             
             page = request.args.get('page', 1, type=int)
-            offset = (page - 1) * PER_PAGE
+            offset = (page - 1) * per_page
 
             total_query = query.replace("SELECT *", "SELECT COUNT(*)")
             total_items = conn.execute(total_query, params).fetchone()[0]
-            total_pages = (total_items + PER_PAGE - 1) // PER_PAGE if total_items > 0 else 1
+            total_pages = (total_items + per_page - 1)
 
-            query += f" LIMIT {PER_PAGE} OFFSET {offset}"
+            query += f" LIMIT {per_page} OFFSET {offset}" # 这里把 PER_PAGE 改为 per_page
             items = conn.execute(query, params).fetchall()
             conn.close()
         else:
@@ -446,6 +452,7 @@ def index():
         filter_workflow_status=filter_workflow_status,
         start_date=start_date, end_date=end_date,
         sort_by=sort_by, sort_order=sort_order,
+        per_page=per_page,
         available_dbs=available_dbs, current_db=db_name
     )
     
