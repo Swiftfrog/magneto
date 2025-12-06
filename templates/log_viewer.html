@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magneto 终端 - {{ filename }}</title>
+    <style>
+        /* Solarized Dark 配色方案 */
+        :root {
+            --bg-color: #002b36;       /* 深青色背景 */
+            --toolbar-bg: #073642;     /* 稍微亮一点的工具栏 */
+            --text-color: #839496;     /* 正文灰青色 */
+            --border-color: #586e75;   /* 边框色 */
+            
+            --info-color: #2aa198;     /* 青色 (INFO) */
+            --warn-color: #b58900;     /* 黄色 (WARNING) */
+            --error-color: #dc322f;    /* 红色 (ERROR) */
+            --time-color: #586e75;     /* 暗灰色 (时间) */
+            --link-color: #268bd2;     /* 蓝色 (链接) */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: "Consolas", "Monaco", "Courier New", monospace;
+            overflow: hidden; /* 禁止整体滚动 */
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            height: 45px;
+            background-color: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            user-select: none;
+        }
+
+        .file-info {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .back-btn:hover {
+            background-color: #eee8d5;
+            color: #002b36;
+            border-color: #eee8d5;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        /* 开关样式 */
+        .switch-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .switch-label input { margin-right: 6px; accent-color: var(--info-color); }
+
+        /* 日志主容器 */
+        #log-container {
+            height: calc(100% - 46px);
+            overflow-y: auto;
+            padding: 15px;
+            white-space: pre-wrap; /* 保留换行 */
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+        }
+
+        /* 语法高亮 */
+        .log-info { color: var(--info-color); font-weight: bold; }
+        .log-warn { color: var(--warn-color); font-weight: bold; }
+        .log-error { color: var(--error-color); font-weight: bold; text-decoration: underline; }
+        .log-time { color: var(--time-color); opacity: 0.8; font-size: 0.9em; }
+        .log-path { color: var(--link-color); text-decoration: underline; opacity: 0.7; }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #93a1a1; }
+
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <div class="file-info">
+            <a href="/logs" class="back-btn">← 返回</a>
+            <span>📄 {{ filename }}</span>
+        </div>
+        <div class="controls">
+            <div id="status-indicator" style="color: var(--info-color);">● 连接正常</div>
+            <label class="switch-label">
+                <input type="checkbox" id="autoScroll" checked> 自动滚动
+            </label>
+        </div>
+    </div>
+
+    <div id="log-container">正在初始化日志连接...</div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const filename = "{{ filename }}";
+            const container = document.getElementById('log-container');
+            const autoScrollCheckbox = document.getElementById('autoScroll');
+            const statusIndicator = document.getElementById('status-indicator');
+            let isFetching = false;
+
+            // 简单的日志着色
+            function colorizeLog(text) {
+                if (!text) return "";
+                // HTML 转义
+                let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                return safeText
+                    .replace(/INFO/g, '<span class="log-info">INFO</span>')
+                    .replace(/WARNING/g, '<span class="log-warn">WARNING</span>')
+                    .replace(/ERROR/g, '<span class="log-error">ERROR</span>')
+                    .replace(/FAILED/g, '<span class="log-error">FAILED</span>')
+                    // 匹配日期时间 (YYYY-MM-DD HH:MM:SS)
+                    .replace(/(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})/g, '<span class="log-time">$1</span>')
+                    // 匹配 Python 文件路径
+                    .replace(/(\/[\w\/\.-]+\.py)/g, '<span class="log-path">$1</span>');
+            }
+
+            function fetchLogs() {
+                if (isFetching) return;
+                isFetching = true;
+
+                // 加个时间戳防止 Safari 缓存请求
+                const timestamp = new Date().getTime();
+
+                fetch(`/api/log_content?filename=${filename}&_t=${timestamp}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error("Network response error");
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            container.innerHTML = `<span style="color:var(--error-color)">读取错误: ${data.error}</span>`;
+                        } else {
+                            const currentHTML = container.innerHTML;
+                            const newHTML = colorizeLog(data.content);
+
+                            // 简单比对：内容有变化才刷新 DOM
+                            // 注意：对于超大日志，这种方式在移动端可能依然有性能瓶颈
+                            // 但对于日常查看几千行的日志完全足够
+                            if (newHTML.length !== currentHTML.length) {
+                                container.innerHTML = newHTML;
+                                if (autoScrollCheckbox.checked) {
+                                    container.scrollTop = container.scrollHeight;
+                                }
+                            }
+                        }
+                        statusIndicator.innerText = "● 连接正常";
+                        statusIndicator.style.color = "var(--info-color)";
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        statusIndicator.innerText = "○ 连接断开";
+                        statusIndicator.style.color = "var(--error-color)";
+                    })
+                    .finally(() => {
+                        isFetching = false;
+                    });
+            }
+
+            // 1. 立即执行一次
+            fetchLogs();
+
+            // 2. 每 2 秒轮询一次
+            setInterval(fetchLogs, 2000);
+        });
+    </script>
+</body>
+</html>

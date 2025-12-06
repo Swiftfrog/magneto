@@ -4,7 +4,7 @@ import sys
 import glob # 用于查找配置文件
 import subprocess
 import time
-from flask import Flask, render_template, request, g, redirect, url_for, flash
+from flask import Flask, render_template, request, g, redirect, url_for, flash, jsonify
 
 # --- 定时任务库 ---
 from flask_apscheduler import APScheduler
@@ -98,7 +98,7 @@ def save_config():
         return "保存成功", 200
     except Exception as e:
         return str(e), 500
-        
+
 @app.route('/api/delete_config', methods=['POST'])
 def delete_config():
     filename = request.form.get('filename')
@@ -297,6 +297,28 @@ def delete_job(job_id):
 #               日志 & 首页路由
 # ==========================================
 
+# [API] 获取日志内容的接口 (供前端轮询)
+@app.route('/api/log_content')
+def get_log_content():
+    filename = request.args.get('filename')
+    # 简单的安全检查，防止路径遍历
+    if not filename or '/' in filename or '\\' in filename:
+        return jsonify({'error': '非法文件名', 'content': ''}), 400
+
+    log_dir = 'logs'
+    file_path = os.path.join(log_dir, filename)
+    
+    if not os.path.exists(file_path):
+        return jsonify({'error': '文件不存在', 'content': ''}), 404
+        
+    try:
+        # 读取文件内容
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return jsonify({'status': 'ok', 'content': content})
+    except Exception as e:
+        return jsonify({'error': str(e), 'content': ''}), 500
+
 @app.route('/logs')
 def list_logs():
     log_dir = 'logs'
@@ -314,13 +336,8 @@ def list_logs():
 
 @app.route('/logs/<filename>')
 def view_log(filename):
-    log_dir = 'logs'
-    try:
-        with open(os.path.join(log_dir, filename), 'r', encoding='utf-8') as f:
-            content = f.read()
-        return f"<pre>{content}</pre>"
-    except Exception as e:
-        return f"读取日志失败: {e}"
+    # 渲染新的实时日志模板
+    return render_template('log_viewer.html', filename=filename)
 
 def get_all_sources(conn):
     if not conn: return []
@@ -430,12 +447,15 @@ def index():
                 query += f" ORDER BY {sort_by} {sort_order}"
             
             page = request.args.get('page', 1, type=int)
+            # offset = (page - 1) * PER_PAGE
             offset = (page - 1) * per_page
 
             total_query = query.replace("SELECT *", "SELECT COUNT(*)")
             total_items = conn.execute(total_query, params).fetchone()[0]
-            total_pages = (total_items + per_page - 1)
+            # total_pages = (total_items + PER_PAGE - 1) // PER_PAGE if total_items > 0 else 1
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
+            # query += f" LIMIT {PER_PAGE} OFFSET {offset}"
             query += f" LIMIT {per_page} OFFSET {offset}" # 这里把 PER_PAGE 改为 per_page
             items = conn.execute(query, params).fetchall()
             conn.close()
@@ -499,4 +519,4 @@ def batch_delete():
     return redirect(request.referrer or url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=6246)
+    app.run(debug=True, host='0.0.0.0', port=5002)
