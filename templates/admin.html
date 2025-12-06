@@ -53,7 +53,7 @@
 
 <div class="container">
     <h1>
-        <span>⚙️ magneto setting</span>
+        <span>⚙️ setting</span>
         <a href="/" class="nav-link">← back magneto</a>
     </h1>
 
@@ -200,8 +200,14 @@
             <div class="form-group">
                 <textarea id="configContent" placeholder="在此编辑配置内容..."></textarea>
             </div>
-            <div style="text-align: right;">
-                <button type="button" class="btn btn-success" onclick="saveConfig()">💾 保存配置</button>
+            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                <button type="button" class="btn btn-outline" id="deleteConfigBtn" onclick="deleteConfig()" style="color: #dc3545; border-color: #dc3545;">
+                    🗑️ 删除此配置
+                </button>
+                
+                <button type="button" class="btn btn-success" onclick="saveConfig()">
+                    💾 保存配置
+                </button>
             </div>
         </div>
 
@@ -304,6 +310,7 @@
     const toggleModeBtn = document.getElementById('toggleModeBtn');
     const newFilenameInput = document.getElementById('newFilename');
     const textArea = document.getElementById('configContent');
+    const deleteBtn = document.getElementById('deleteConfigBtn');
     let isNewFileMode = false;
 
     function toggleEditMode() {
@@ -314,12 +321,14 @@
             toggleModeBtn.innerText = "🔙 返回";
             toggleModeBtn.classList.replace('btn-secondary', 'btn-outline');
             fileSelector.value = "";
+            deleteBtn.classList.add('d-none');
             textArea.value = `# 新建配置文件模板\nsite_name: "example"\nbase_url: "https://example.com"\ndatabase_file: "example.db"\nlog_level: "INFO"\nrequest_delay: 1\nstop_on_consecutive_duplicates: 10\ntag_rules:\n  "高清": ["FHD", "1080p"]`;
         } else {
             selectFileContainer.classList.remove('d-none');
             newFileContainer.classList.add('d-none');
             toggleModeBtn.innerText = "➕ 新建";
             toggleModeBtn.classList.replace('btn-outline', 'btn-secondary');
+            deleteBtn.classList.remove('d-none');
             textArea.value = "";
         }
     }
@@ -358,6 +367,45 @@
         })
         .catch(err => alert('错误: ' + err));
     }
+    
+    function deleteConfig() {
+        // 1. 检查是否在新建模式
+        if (isNewFileMode) {
+            alert("新建文件无法删除，请点击返回。");
+            return;
+        }
+
+        // 2. 获取当前选中的文件名
+        const filename = fileSelector.value;
+        if (!filename) {
+            alert("请先选择一个要删除的文件！");
+            return;
+        }
+
+        // 3. 再次确认 (非常重要)
+        if (!confirm(`⚠️ 高危操作确认\n\n您确定要永久删除配置文件 "${filename}" 吗？\n此操作无法撤销！`)) {
+            return;
+        }
+
+        // 4. 发送请求
+        const formData = new FormData();
+        formData.append('filename', filename);
+
+        fetch('/api/delete_config', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if (res.ok) {
+                alert('🗑️ 删除成功！');
+                location.reload(); // 刷新页面以更新列表
+            } else {
+                res.text().then(text => alert('❌ 删除失败: ' + text));
+            }
+        })
+        .catch(err => alert('请求错误: ' + err));
+    }
+    
 </script>
 
 </body>

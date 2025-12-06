@@ -98,6 +98,24 @@ def save_config():
         return "保存成功", 200
     except Exception as e:
         return str(e), 500
+        
+@app.route('/api/delete_config', methods=['POST'])
+def delete_config():
+    filename = request.form.get('filename')
+    
+    if not filename or not filename.endswith('.yaml'):
+        return "无效的文件名", 400
+        
+    file_path = os.path.join(CONFIG_DIR, filename)
+    
+    if not os.path.exists(file_path):
+        return "文件不存在", 404
+    
+    try:
+        os.remove(file_path)
+        return "删除成功", 200
+    except Exception as e:
+        return str(e), 500
 
 # ==========================================
 #               任务执行路由
