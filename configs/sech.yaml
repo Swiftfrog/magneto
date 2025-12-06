@@ -1,22 +1,13 @@
 site_name: "sech"
 base_url: "https://sehuatang.org"
-fid: 103
-database_file: "database/sech.db"  # 储存到指定数据库
+fid: 103 # 论坛id号
+database_file: "sech.db"  # 储存到指定数据库
 
 log_level: "info"
 batch_pages: 10
 batch_size: 20
-selenium_wait_timeout: 30
 
-# 标签解析规则
-tag_rules:
-  "高清": ["HD", "FHD", "1080p"]
-  "无码": ["無修正", "Uncensored", "無碼", "无码"]
-  "破解": ["破解"]
-  "中文字幕": ["中字", "中文", "字幕"]
-  "4K": ["4K", "2160p"]
-  "流出": ["流出"]
-
+# CSS选择器
 selectors:
   fetch_urls:
     enter_button: "a.enter-btn"
@@ -33,3 +24,33 @@ selectors:
     cover_image: "td.t_f img.zoom"
     size_keyword: "影片容量|影片大小"
     type_keyword: "是否有码"
+
+tag_rules:
+  # --- 画质与技术 ---
+  "1080p": ["1080p", "FHD", "HD", "High Definition"]
+  "4K": ["4K", "2160p", "UHD"]
+  "8K": ["8K", "4320p"]
+  "60帧": ["60fps", "High Frame Rate"]
+  "VR": ["VR", "Virtual Reality"]
+
+  # --- 语言字幕 ---
+  "中文字幕": ["FHDC", "中文", "中字","字幕", "汉化", "Sub", "Chinese", "CMP", "-C", "-c"] 
+  "AI字幕": ["AI字幕", "AI汉化", "AI翻译", "机器翻译"]
+
+  # --- 修正/无码状态 (核心拓展) ---
+  "流出": ["流出", "Leaked", "leaked", "Private"]
+  
+  # 包含常见无码片商的前缀和通用关键词
+  "无码": [
+    "无码", "【無】", "【無", "未修正", "無修正", "No Mosaic", "Uncensored", "uncensored", "Uncen-",
+    "HEYZO", "-CARIB", "CARIB", "-10MU", "10Musume", "-1PON", "1Pondo", "-PACO", "Pacopacomama",
+    "-MURA", "Muramura", "-KIN8", "Kin8", "C0930", "H4610", "S-CUTE", "G-AREA",
+    "Tokyo-Hot", "TokyoHot", "Catwalk", "xxx-av"
+  ]
+  
+  # AI 修复或破解马赛克
+  "无码破解": ["破解", "Reducing Mosaic", "AI-Uncensored", "AI破坏", "AI破解", "Decoded"]
+
+  # --- 来源与系列 ---
+  "FC2": ["FC2", "FC2-PPV", "FC2PPV"]
+  "蓝光": ["BluRay", "Blu-ray", "BD", "BDRip"]
