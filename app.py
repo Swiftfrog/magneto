@@ -212,7 +212,7 @@ def add_job():
     
     # 1. 获取通用参数
     task_type = request.form.get('task_type')
-    site_name = request.form.get('param1') # 配置文件名
+    site_name = request.form.get('param1') # Get param1 from form, save as site_name
     cron_exp = request.form.get('cron_expression') 
     
     # 构造要执行的命令参数
@@ -220,13 +220,13 @@ def add_job():
     job_args = [sys.executable, 'run_task.py', task_type]
     job_name = f"Task: {task_type}"
 
-    # 2. 根据任务类型解析专用参数 (复用 run_advanced_task 的逻辑)
+    # 2. According to task type, parse specific parameters
     if task_type == 'javbee':
-        # --- 修改开始 ---
         date_val = request.form.get('param_jav_date', '').strip()
         tag_val = request.form.get('param_jav_tag', '').strip()
         
-        job_args.extend(['--site', param1])
+        # --- FIX: Use site_name instead of param1 ---
+        job_args.extend(['--site', site_name]) 
         
         if tag_val:
             job_args.extend(['--tag', tag_val])
@@ -236,27 +236,29 @@ def add_job():
             job_name += f" (Date: {date_val})"
         else:
             job_name += f" (Auto Date)"
-        # --- 修改结束 ---
         
     elif task_type == 'sehuatang':
         page_val = request.form.get('param_sech_page', '').strip()
+        # --- FIX: Use site_name instead of param1 ---
         job_args.extend(['--site', site_name])
         if page_val:
             if not page_val.startswith('-'):
                 job_args.extend(['--page', page_val])
             else:
-                job_args.extend(page_val.split()) # 支持 --retry-failed 等
+                job_args.extend(page_val.split()) 
         job_name += f" ({site_name})"
 
     elif task_type == 'nyaa':
         start_page = request.form.get('param_nyaa_start', '1').strip()
         end_page = request.form.get('param_nyaa_end', 'auto').strip()
+        # --- FIX: Use site_name instead of param1 ---
         job_args.extend(['--site', site_name])
         job_args.extend(['--start-page', start_page])
         job_args.extend(['--end-page', end_page])
         job_name += f" ({site_name})"
 
     elif task_type == 'retag':
+        # --- FIX: Use site_name instead of param1 ---
         job_args.append(site_name)
         job_name += f" ({site_name})"
 
