@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>magneto setting</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h1 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-link { font-size: 14px; text-decoration: none; color: #007bff; }
+        
+        /* 布局网格 */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media(max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+        /* 卡片样式 */
+        .card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 20px; background: #fff; margin-bottom: 20px; }
+        .card h3 { margin-top: 0; color: #333; border-bottom: 1px dashed #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        
+        /* 表单元素 */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; font-size: 0.9em; }
+        select, input[type="text"], textarea { width: 100%; padding: 8px 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        select:focus, input:focus, textarea:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+        textarea { font-family: monospace; height: 350px; resize: vertical; background: #fafafa; }
+        
+        /* 按钮组 */
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-outline { background: transparent; border: 1px solid #6c757d; color: #6c757d; }
+        .btn-outline:hover { background: #f8f9fa; }
+        
+        /* 消息提示 */
+        .flash { padding: 12px; margin-bottom: 20px; border-radius: 4px; }
+        .flash.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        /* 动态区域 */
+        .task-params { display: none; background: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #e9ecef; }
+        .task-params.active { display: block; }
+        .d-none { display: none !important; }
+
+        /* Cron 区域高亮 */
+        .cron-section { background: #e8f5e9; padding: 15px; border-radius: 4px; border: 1px solid #c8e6c9; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        <span>⚙️ magneto setting</span>
+        <a href="/" class="nav-link">← back magneto</a>
+    </h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid">
+        
+        <div class="card">
+            <h3>🛠️ 任务控制中心</h3>
+            
+            <form method="POST" id="taskForm">
+                
+                <div class="form-group" style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label>任务类型</label>
+                        <select name="task_type" id="taskTypeSelector">
+                            <option value="javbee">Javbee (爬虫+入库)</option>
+                            <option value="sehuatang">Sehuatang (列表+详情)</option>
+                            <option value="nyaa">Nyaa (列表爬虫)</option>
+                            <option value="retag">标签重整 (Retag)</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>配置文件 (Site)</label>
+                        <select name="param1" id="siteSelector">
+                            {% if config_files %}
+                                {% for f in config_files %}
+                                <option value="{{ f.replace('.yaml', '') }}">{{ f }}</option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="">(无配置)</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="params-javbee" class="task-params active">
+                    <div class="form-group">
+                        <label>方式 A: 按日期 (留空则默认为昨天)</label>
+                        <input type="text" name="param_jav_date" placeholder="YYYY-MM-DD">
+                    </div>
+                    <div style="text-align: center; color: #999; margin: 5px 0;">--- 或 ---</div>
+                    <div class="form-group">
+                        <label>方式 B: 按标签/关键词</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" name="param_jav_tag" placeholder="例如: older-sister" style="flex: 3;">
+                            <input type="number" name="param_jav_start" value="1" placeholder="起始页" style="flex: 1;" min="1">
+                        </div>
+                        <small style="color: #666;">注意：如果填写了标签，将忽略日期参数。</small>
+                    </div>
+                </div>
+
+                <div id="params-sehuatang" class="task-params">
+                    <div class="form-group">
+                        <label>额外参数 (可选):</label>
+                        <input type="text" name="param_sech_page" placeholder="例如: 1-5 或 --retry-failed">
+                        <small style="color: #666;">支持页码范围、--retry-failed 等。留空则执行标准增量更新。</small>
+                    </div>
+                </div>
+
+                <div id="params-nyaa" class="task-params">
+                    <div class="form-group" style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label>起始页:</label>
+                            <input type="text" name="param_nyaa_start" value="1">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>结束页:</label>
+                            <input type="text" name="param_nyaa_end" value="auto">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="params-retag" class="task-params">
+                    <p style="margin: 0; color: #666;">无需额外参数，仅根据配置文件重整标签。</p>
+                </div>
+
+                <div id="cronSection" class="cron-section d-none">
+                    <div class="form-group">
+                        <label>⏱️ 执行频率 (Cron 表达式):</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                            <select style="width: 150px;" onchange="document.getElementById('cronInput').value = this.value">
+                                <option value="">-- 模板 --</option>
+                                <option value="0 2 * * *">每天 02:00</option>
+                                <option value="0 12 * * *">每天 12:00</option>
+                                <option value="*/30 * * * *">每 30 分钟</option>
+                            </select>
+                            <input type="text" name="cron_expression" id="cronInput" placeholder="分 时 日 月 周 (如: 30 2 * * *)">
+                        </div>
+                        <small style="color: #2e7d32;">填写此项将把当前配置添加为定时任务。</small>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px; display: flex; gap: 10px; align-items: center;">
+                    <button type="submit" formaction="/run_advanced_task" class="btn btn-primary" style="flex: 1;">
+                        🚀 立即执行
+                    </button>
+                    
+                    <button type="button" id="toggleCronBtn" class="btn btn-outline" onclick="toggleCronMode()">
+                        ⏰ 设为定时任务
+                    </button>
+
+                    <button type="submit" formaction="/api/add_job" id="submitCronBtn" class="btn btn-success d-none" style="flex: 1;">
+                        ➕ 确认添加计划
+                    </button>
+                </div>
+            </form>
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            
+            <div style="text-align: center;">
+                <a href="/logs" target="_blank" class="nav-link">📄 打开运行日志窗口</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📝 配置文件管理</h3>
+            
+            <div class="form-group" style="display: flex; gap: 5px; align-items: flex-end;">
+                <div style="flex-grow: 1;" id="selectFileContainer">
+                    <label>选择文件:</label>
+                    <select id="configFileSelector">
+                        <option value="">-- 请选择 --</option>
+                        {% for f in config_files %}
+                            <option value="{{ f }}">{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div style="flex-grow: 1;" id="newFileContainer" class="d-none">
+                    <label style="color: #28a745;">新文件名 (.yaml):</label>
+                    <input type="text" id="newFilename" placeholder="my_site.yaml">
+                </div>
+
+                <button type="button" class="btn btn-secondary" id="toggleModeBtn" onclick="toggleEditMode()" style="height: 38px;">➕ 新建</button>
+            </div>
+
+            <div class="form-group">
+                <textarea id="configContent" placeholder="在此编辑配置内容..."></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button type="button" class="btn btn-success" onclick="saveConfig()">💾 保存配置</button>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h3>📅 已计划的定时任务</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background: #f8f9fa; text-align: left; border-bottom: 2px solid #eee;">
+                        <th style="padding: 12px; color: #555;">任务详情</th>
+                        <th style="padding: 12px; color: #555;">执行策略 (Cron)</th>
+                        <th style="padding: 12px; color: #555;">下次运行时间</th>
+                        <th style="padding: 12px; color: #555; text-align: right;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="jobsTableBody">
+                    <tr><td colspan="4" style="padding: 20px; text-align:center; color:#999;">正在加载任务列表...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- 1. 任务参数联动逻辑 ---
+    const taskSelector = document.getElementById('taskTypeSelector');
+    const paramDivs = document.querySelectorAll('.task-params');
+    const inputs = document.querySelectorAll('.task-params input');
+
+    taskSelector.addEventListener('change', function() {
+        // 隐藏所有特定参数区，禁用 input 避免提交脏数据
+        paramDivs.forEach(div => div.classList.remove('active'));
+        inputs.forEach(input => input.disabled = true);
+
+        // 显示当前选中任务的参数区
+        const selectedId = 'params-' + this.value;
+        const activeDiv = document.getElementById(selectedId);
+        if(activeDiv) {
+            activeDiv.classList.add('active');
+            activeDiv.querySelectorAll('input').forEach(i => i.disabled = false);
+        }
+    });
+    // 初始化
+    taskSelector.dispatchEvent(new Event('change'));
+
+    // --- 2. Cron 模式切换逻辑 ---
+    const cronSection = document.getElementById('cronSection');
+    const toggleCronBtn = document.getElementById('toggleCronBtn');
+    const submitCronBtn = document.getElementById('submitCronBtn');
+    const cronInput = document.getElementById('cronInput');
+    let isCronMode = false;
+
+    function toggleCronMode() {
+        isCronMode = !isCronMode;
+        if(isCronMode) {
+            cronSection.classList.remove('d-none');
+            toggleCronBtn.classList.add('d-none'); // 隐藏自己
+            submitCronBtn.classList.remove('d-none'); // 显示提交按钮
+            cronInput.required = true; // 必填
+        } else {
+            cronSection.classList.add('d-none');
+            toggleCronBtn.classList.remove('d-none');
+            submitCronBtn.classList.add('d-none');
+            cronInput.required = false;
+        }
+    }
+
+    // --- 3. 定时任务列表加载 ---
+    function loadJobs() {
+        fetch('/api/jobs')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('jobsTableBody');
+                tbody.innerHTML = '';
+                if(data.jobs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#999;">暂无定时任务，请在上方添加。</td></tr>';
+                    return;
+                }
+                data.jobs.forEach(job => {
+                    const row = `
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 12px;"><strong>${job.name}</strong></td>
+                            <td style="padding: 12px;"><span style="background:#e8f5e9; color:#2e7d32; padding:2px 6px; border-radius:4px; font-family:monospace;">${job.trigger}</span></td>
+                            <td style="padding: 12px; color: #666;">${job.next_run}</td>
+                            <td style="padding: 12px; text-align: right;">
+                                <a href="/api/delete_job/${job.id}" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px; color: #dc3545; border-color: #dc3545;">删除</a>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            });
+    }
+    document.addEventListener('DOMContentLoaded', loadJobs);
+
+    // --- 4. 配置文件编辑逻辑 ---
+    const fileSelector = document.getElementById('configFileSelector');
+    const newFileContainer = document.getElementById('newFileContainer');
+    const selectFileContainer = document.getElementById('selectFileContainer');
+    const toggleModeBtn = document.getElementById('toggleModeBtn');
+    const newFilenameInput = document.getElementById('newFilename');
+    const textArea = document.getElementById('configContent');
+    let isNewFileMode = false;
+
+    function toggleEditMode() {
+        isNewFileMode = !isNewFileMode;
+        if (isNewFileMode) {
+            selectFileContainer.classList.add('d-none');
+            newFileContainer.classList.remove('d-none');
+            toggleModeBtn.innerText = "🔙 返回";
+            toggleModeBtn.classList.replace('btn-secondary', 'btn-outline');
+            fileSelector.value = "";
+            textArea.value = `# 新建配置文件模板\nsite_name: "example"\nbase_url: "https://example.com"\ndatabase_file: "example.db"\nlog_level: "INFO"\nrequest_delay: 1\nstop_on_consecutive_duplicates: 10\ntag_rules:\n  "高清": ["FHD", "1080p"]`;
+        } else {
+            selectFileContainer.classList.remove('d-none');
+            newFileContainer.classList.add('d-none');
+            toggleModeBtn.innerText = "➕ 新建";
+            toggleModeBtn.classList.replace('btn-outline', 'btn-secondary');
+            textArea.value = "";
+        }
+    }
+
+    fileSelector.addEventListener('change', function() {
+        const filename = this.value;
+        if(!filename) { textArea.value = ""; return; }
+        fetch('/api/get_config?filename=' + filename)
+            .then(res => res.text())
+            .then(data => textArea.value = data)
+            .catch(err => alert('加载失败: ' + err));
+    });
+
+    function saveConfig() {
+        let filename;
+        const content = textArea.value;
+        if (isNewFileMode) {
+            filename = newFilenameInput.value.trim();
+            if (!filename) { alert("请输入文件名！"); return; }
+            if (!filename.endsWith('.yaml')) { alert("必须以 .yaml 结尾！"); return; }
+        } else {
+            filename = fileSelector.value;
+            if (!filename) { alert("请先选择文件！"); return; }
+        }
+
+        const formData = new FormData();
+        formData.append('filename', filename);
+        formData.append('content', content);
+
+        fetch('/api/save_config', { method: 'POST', body: formData })
+        .then(res => {
+            if(res.ok) {
+                alert('✅ 保存成功！');
+                if (isNewFileMode) location.reload();
+            } else res.text().then(text => alert('❌ 失败: ' + text));
+        })
+        .catch(err => alert('错误: ' + err));
+    }
+</script>
+
+</body>
+</html>

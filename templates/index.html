@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <title>magneto</title>
+    <style>
+        :root { --font-size: 14px; }
+        body { padding: 1rem 2rem; }
+        .filter-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; align-items: end;}
+        .links a { margin-right: 0.75rem; font-size: 0.9em; text-decoration: none; white-space: nowrap; }
+        .links a:hover { text-decoration: underline; }
+        .pagination { margin-top: 2rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;}
+        .pagination ul { margin: 0; padding: 0; list-style: none; display: flex; gap: 0.25rem; }
+        .pagination .page-jump { display: flex; align-items: center; margin-left: 1rem; }
+        .pagination .page-jump input { width: 80px; margin: 0 0.5rem; }
+        .flash { padding: 1rem; margin-bottom: 1rem; border-radius: var(--border-radius); }
+        .flash.success { background-color: var(--pico-color-green-150); border: 1px solid var(--pico-color-green-300); }
+        .flash.error { background-color: var(--pico-color-red-150); border: 1px solid var(--pico-color-red-300); }
+        table { table-layout: fixed; width: 100%; }
+        .title-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: end;
+        }
+        /* 强制按钮内文字不换行 */
+        .button-group button, .button-group a[role="button"] {
+            white-space: nowrap;
+        }
+        .action-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        /* 危险按钮样式 */
+        .btn-danger {
+            background-color: #d32f2f;
+            border-color: #c62828;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b71c1c;
+            border-color: #b71c1c;
+        }
+    </style>
+</head>
+
+<div style="position: absolute; top: 20px; right: 20px;">
+    <a href="/admin" style="text-decoration: none; font-size: 16px; background: #eee; padding: 8px 12px; border-radius: 4px; color: #333;">
+        ⚙️ magneto setting
+    </a>
+</div>
+
+<body>
+    <main class="container-fluid">
+        <h1>magneto</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <nav>
+            <ul>
+                <li><strong>选择数据库:</strong></li>
+                {% for db in available_dbs %}
+                <li><a href="{{ url_for('index', db=db) }}" {% if db == current_db %}role="button" class="secondary outline"{% else %}role="button" class="contrast outline"{% endif %}>{{ db }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+
+        <details open>
+            <summary>筛选与排序</summary>
+            <form action="/" method="get" class="filter-panel">
+                <input type="hidden" name="db" value="{{ current_db }}">
+                <div>
+                    <label for="q_term">搜索词</label>
+                    <input type="search" id="q_term" name="q_term" placeholder="搜索..." value="{{ search_term }}">
+                </div>
+                <div>
+                    <label for="q_scope">搜索范围</label>
+                    <select id="q_scope" name="q_scope">
+                        <option value="all" {% if search_scope == 'all' %}selected{% endif %}>全部</option>
+                        <option value="title" {% if search_scope == 'title' %}selected{% endif %}>仅标题</option>
+                        <option value="item_number" {% if search_scope == 'item_number' %}selected{% endif %}>仅编号</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="f_source">来源</label>
+                    <select id="f_source" name="f_source">
+                        <option value="">所有来源</option>
+                        {% for source in all_sources %}
+                        <option value="{{ source }}" {% if source == filter_source %}selected{% endif %}>{{ source }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="f_tag">标签</label>
+                    <select id="f_tag" name="f_tag">
+                        <option value="">所有标签</option>
+                        {% for tag in all_tags %}
+                        <option value="{{ tag }}" {% if tag == filter_tag %}selected{% endif %}>{{ tag }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="f_wstatus">工作流状态</label>
+                    <select id="f_wstatus" name="f_wstatus">
+                        <option value="">所有状态</option>
+                        <option value="pending" {% if filter_workflow_status == 'pending' %}selected{% endif %}>待处理 (Pending)</option>
+                        <option value="downloaded" {% if filter_workflow_status == 'downloaded' %}selected{% endif %}>已下载 (Downloaded)</option>
+                    </select>
+                </div>
+
+                <div><label for="start_date">起始日期</label><input type="date" id="start_date" name="start_date" value="{{ start_date }}"></div>
+                <div><label for="end_date">结束日期</label><input type="date" id="end_date" name="end_date" value="{{ end_date }}"></div>
+
+        <div>
+            <label for="sort_by">排序依据</label>
+            <select id="sort_by" name="sort_by">
+                <option value="publish_date" {% if sort_by == 'publish_date' %}selected{% endif %}>按发布日期</option>
+                <option value="added_at" {% if sort_by == 'added_at' %}selected{% endif %}>按添加时间</option>
+                <option value="title" {% if sort_by == 'title' %}selected{% endif %}>按标题</option>
+                <option value="item_number" {% if sort_by == 'item_number' %}selected{% endif %}>按编号</option>
+                <option value="source" {% if sort_by == 'source' %}selected{% endif %}>按来源</option>
+                <option value="file_size" {% if sort_by == 'file_size' %}selected{% endif %}>按文件大小</option>
+                <option value="workflow_status" {% if sort_by == 'workflow_status' %}selected{% endif %}>按工作流状态</option>
+            </select>
+        </div>
+
+                <div><label for="sort_order">排序顺序</label><select id="sort_order" name="sort_order">
+                    <option value="DESC" {% if sort_order == 'DESC' %}selected{% endif %}>降序</option>
+                    <option value="ASC" {% if sort_order == 'ASC' %}selected{% endif %}>升序</option>
+                </select></div>
+                <div class="button-group">
+                    <button type="submit">应用筛选</button>
+                    <button type="button" class="secondary" onclick="window.location.href='{{ url_for('index', db=current_db) }}'">重置筛选</button>
+                </div>
+            </form>
+        </details>
+
+        <form method="post" id="mainForm">
+            <input type="hidden" name="db_name" value="{{ current_db }}">
+            <figure>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 3%;"><input type="checkbox" id="select-all"></th>
+                            <th style="width: 10%;">编号</th>
+                            <th style="width: 40%;">标题</th>
+                            <th style="width: 8%;">大小</th>
+                            <th style="width: 10%;">发布日期</th>
+                            <th style="width: 7%;">来源</th>
+                            <th style="width: 7%;">状态</th>
+                            <th style="width: 15%;">操作 / 链接</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td><input type="checkbox" name="selected_ids" value="{{ item['id'] }}" data-magnet="{{ item['magnet_link'] }}"></td>
+                            <td>{{ item['item_number'] }}</td>
+                            <td class="title-cell" title="{{ item['title'] }}">{{ item['title'] }}</td>
+                            <td>{{ item['file_size'] }}</td>
+                            <td>{{ item['publish_date'][:10] if item['publish_date'] }}</td>
+                            <td>{{ item['source'] }}</td>
+                            <td>{{ item['workflow_status'] }}</td>
+                            <td class="links">
+                                {% if item['post_url'] %}<a href="{{ item['post_url'] }}" target="_blank" title="原文链接">🔗原文</a>{% endif %}
+                                {% if item['magnet_link'] %}<a href="{{ item['magnet_link'] }}" title="点击复制磁链" class="copy-magnet">🧲磁链</a>{% endif %}
+                                {% if item['cover_url'] %}<a href="{{ item['cover_url'] }}" target="_blank" title="封面图片">📷封面</a>{% endif %}
+                                <a href="#" onclick="deleteSingleItem('{{ item['id'] }}'); return false;" style="color: red; margin-left: 5px;" title="删除此条目">❌删除</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="8" style="text-align: center;">没有找到任何记录。</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </figure>
+            
+            <article>
+                <div class="action-toolbar">
+                    <div class="button-group">
+                        <select id="new_status" name="new_status" aria-label="批量操作">
+                            <option value="pending">标记为 待处理</option>
+                            <option value="downloaded">标记为 已下载</option>
+                        </select>
+                        <button type="submit" formaction="{{ url_for('batch_update') }}">更新选中状态</button>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="submit" 
+                                formaction="{{ url_for('batch_delete') }}" 
+                                class="btn-danger" 
+                                onclick="return confirm('⚠️ 警告：确定要永久删除选中的记录吗？此操作无法撤销。');">
+                            🗑️ 删除选中项
+                        </button>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" id="copy-selected-magnets" class="outline">复制选中项磁链</button>
+                        <button type="button" id="copy-all-magnets" class="outline">复制本页所有磁链</button>
+                    </div>
+                </div>
+            </article>
+        </form>
+        
+        {% if total_pages > 1 %}
+        <nav class="pagination">
+            {% set args = request.args.to_dict() %}
+            {% set _ = args.pop('page', None) %}
+            
+            <ul>
+                {% if page > 1 %}
+                    <li><a href="{{ url_for('index', page=1, **args) }}">首页</a></li>
+                    <li><a href="{{ url_for('index', page=page-1, **args) }}">‹</a></li>
+                {% else %}
+                    <li><a href="#" role="button" class="secondary outline" disabled>首页</a></li>
+                    <li><a href="#" role="button" class="secondary outline" disabled>‹</a></li>
+                {% endif %}
+            </ul>
+            <ul>
+                {% set show_ellipsis_start = false %}
+                {% set show_ellipsis_end = false %}
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                        {% if p == page %}
+                            <li><a href="#" role="button" class="secondary outline" aria-current="page">{{ p }}</a></li>
+                        {% else %}
+                            <li><a href="{{ url_for('index', page=p, **args) }}">{{ p }}</a></li>
+                        {% endif %}
+                    {% elif p < page and not show_ellipsis_start %}
+                        {% set show_ellipsis_start = true %}
+                        <li>...</li>
+                    {% elif p > page and not show_ellipsis_end %}
+                        {% set show_ellipsis_end = true %}
+                        <li>...</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+            <ul>
+                {% if page < total_pages %}
+                    <li><a href="{{ url_for('index', page=page+1, **args) }}">›</a></li>
+                    <li><a href="{{ url_for('index', page=total_pages, **args) }}">末页</a></li>
+                {% else %}
+                    <li><a href="#" role="button" class="secondary outline" disabled>›</a></li>
+                    <li><a href="#" role="button" class="secondary outline" disabled>末页</a></li>
+                {% endif %}
+            </ul>
+            <div class="page-jump">
+                <form method="GET" action="{{ url_for('index') }}">
+                    {% for key, value in args.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+                    <input type="number" name="page" min="1" max="{{ total_pages }}" placeholder="页码..." aria-label="页码" style="width: 100px;">
+                    <button type="submit" class="outline">跳转</button>
+                </form>
+            </div>
+        </nav>
+        {% endif %}
+    </main>
+
+    <script>
+        // 单条删除的辅助函数：创建一个临时的表单并提交
+        function deleteSingleItem(itemId) {
+            if (confirm('确认删除此条目吗？')) {
+                // 创建一个隐藏表单来提交 POST 请求
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{{ url_for('batch_delete') }}?id=" + itemId; // 通过 URL 参数传递 ID
+                
+                // 添加 db_name 字段
+                const dbInput = document.createElement('input');
+                dbInput.type = 'hidden';
+                dbInput.name = 'db_name';
+                dbInput.value = "{{ current_db }}";
+                form.appendChild(dbInput);
+
+                // 添加一个假的 selected_ids 字段，虽然这里用 URL 参数传了，但为了兼容后端逻辑
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'selected_ids';
+                idInput.value = itemId;
+                form.appendChild(idInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // 剪贴板复制相关代码 (保持原有逻辑)
+        function fallbackCopyTextToClipboard(text, successMessage) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = 0;
+            textArea.style.left = 0;
+            textArea.style.opacity = 0;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) alert(successMessage);
+                else alert('使用备用方法复制失败。');
+            } catch (err) {
+                alert('使用备用方法复制时出错！');
+                console.error('Fallback copy error:', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function copyToClipboard(text, successMessage) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(successMessage);
+                }).catch(err => {
+                    console.error('现代剪贴板API失败，尝试备用方法:', err);
+                    fallbackCopyTextToClipboard(text, successMessage);
+                });
+            } else {
+                console.log('现代剪贴板API不可用，使用备用方法。');
+                fallbackCopyTextToClipboard(text, successMessage);
+            }
+        }
+
+        document.getElementById('select-all').addEventListener('change', function(e) {
+            document.querySelectorAll('input[name="selected_ids"]').forEach(function(checkbox) {
+                checkbox.checked = e.target.checked;
+            });
+        });
+
+        document.querySelectorAll('.copy-magnet').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const magnetLink = this.href;
+                if (magnetLink && magnetLink.startsWith('magnet:')) {
+                    copyToClipboard(magnetLink, '磁力链接已复制到剪贴板！');
+                }
+            });
+        });
+
+        document.getElementById('copy-all-magnets').addEventListener('click', function() {
+            const magnets = Array.from(document.querySelectorAll('a.copy-magnet'))
+                                     .map(link => link.href)
+                                     .filter(href => href && href.startsWith('magnet:'));
+            
+            if (magnets.length > 0) {
+                const successMsg = `已成功复制本页所有 ${magnets.length} 条磁力链接！`;
+                copyToClipboard(magnets.join('\n'), successMsg);
+            } else {
+                alert('本页没有可复制的磁力链接。');
+            }
+        });
+
+        document.getElementById('copy-selected-magnets').addEventListener('click', function() {
+            const magnets = Array.from(document.querySelectorAll('input[name="selected_ids"]:checked'))
+                                     .map(checkbox => checkbox.dataset.magnet)
+                                     .filter(magnet => magnet && magnet.startsWith('magnet:'));
+
+            if (magnets.length > 0) {
+                const successMsg = `已成功复制选中的 ${magnets.length} 条磁力链接！`;
+                copyToClipboard(magnets.join('\n'), successMsg);
+            } else {
+                alert('没有选中任何可复制的磁力链接。');
+            }
+        });
+    </script>
+</body>
+</html>

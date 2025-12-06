@@ -1,0 +1,10 @@
+flask
+flask-apscheduler
+flask-basicauth
+sqlalchemy
+requests
+beautifulsoup4
+selenium
+pyyaml
+psutil
+bencodepy

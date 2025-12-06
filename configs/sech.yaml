@@ -1,0 +1,35 @@
+site_name: "sech"
+base_url: "https://sehuatang.org"
+fid: 103
+database_file: "database/sech.db"  # 储存到指定数据库
+
+log_level: "info"
+batch_pages: 10
+batch_size: 20
+selenium_wait_timeout: 30
+
+# 标签解析规则
+tag_rules:
+  "高清": ["HD", "FHD", "1080p"]
+  "无码": ["無修正", "Uncensored", "無碼", "无码"]
+  "破解": ["破解"]
+  "中文字幕": ["中字", "中文", "字幕"]
+  "4K": ["4K", "2160p"]
+  "流出": ["流出"]
+
+selectors:
+  fetch_urls:
+    enter_button: "a.enter-btn"
+    thread_list_item: "tbody[id^='normalthread_']"
+    thread_link: "a[href*='thread-']"
+    max_page_link: "a.last"
+    max_page_span: "span[title*='共']"
+  process_details:
+    enter_button: "a.enter-btn"
+    publish_time: "em[id^='authorposton']"
+    meta_keywords: "meta[name='keywords']"
+    magnet_link: "div.blockcode ol li"
+    post_content_container: "td.t_f"
+    cover_image: "td.t_f img.zoom"
+    size_keyword: "影片容量|影片大小"
+    type_keyword: "是否有码"

@@ -1,0 +1,14 @@
+site_name: "javbee"
+base_url: "https://javbee.vip"
+database_file: "test4.db"
+
+log_level: "INFO"
+request_delay: 1
+
+stop_on_consecutive_duplicates: 20
+
+# 标签规则
+tag_rules:
+  "高清": ["FHD"]
+  "流出": ["流出"]
+  "无码": ["【無】", "未修正"]

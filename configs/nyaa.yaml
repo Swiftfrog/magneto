@@ -1,0 +1,22 @@
+site_name: "nyaa"
+base_url: "https://sukebei.nyaa.si/user/offkab"
+database_file: "database/test1.db"
+log_level: "DEBUG"
+request_delay: 0.5
+
+# --- 新增配置 ---
+# 当连续2个页面的所有数据都重复时，自动停止任务
+stop_on_consecutive_duplicates: 2
+
+tag_rules:
+  "高清": ["1080p", "FHD"]
+  "日语": ["Raw"]
+  "中文字幕": ["FHDC", "中文"]
+
+selectors:
+  item_row: "tr.default, tr.success"
+  title: "td:nth-child(2) > a"
+  post_url: "td:nth-child(2) > a"
+  magnet_link: "a[href^='magnet:']"
+  file_size: "td:nth-child(4)" # 注意：根据HTML结构，大小在第4个td
+  publish_date: "td:nth-child(5)" # 日期在第5个td

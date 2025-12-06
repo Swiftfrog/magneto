@@ -1,0 +1,16 @@
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 数据与日志 (这些不应该进版本控制)
+database/*.db
+logs/*.log
+torrent_downloads/*
+scheduler.db
+
+# 环境变量与密钥 (如果有)
+.env
+
+# 你的个人配置 (可选，或者保留 example)
+# configs/*.yaml
+# !configs/example.yaml
