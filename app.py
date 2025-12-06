@@ -28,9 +28,13 @@ app.secret_key = 'your_very_secret_and_random_key_for_flask'
 class Config:
     SCHEDULER_API_ENABLED = True
     # 持久化存储：把任务存到 scheduler.db 文件里，重启 Docker 不丢失
+    # SCHEDULER_JOBSTORES = {
+    #     'default': SQLAlchemyJobStore(url='sqlite:///scheduler.db')
+    # }
     SCHEDULER_JOBSTORES = {
-        'default': SQLAlchemyJobStore(url='sqlite:///scheduler.db')
+        'default': SQLAlchemyJobStore(url=f'sqlite:///{os.path.join(DATABASE_DIR, "scheduler.db")}')
     }
+
 
 app.config.from_object(Config())
 
