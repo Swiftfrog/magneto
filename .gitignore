@@ -17,3 +17,8 @@ scheduler.db
 
 .DS_Store
 **/.DS_Store
+# macOS metadata
+.DS_Store
+**/.DS_Store
+._*
+.DS_Store?
