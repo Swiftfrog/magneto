@@ -67,7 +67,7 @@ def admin():
     config_files = []
     if os.path.exists(CONFIG_DIR):
         files = glob.glob(os.path.join(CONFIG_DIR, "*.yaml"))
-        config_files = [os.path.basename(f) for f in files]
+        config_files = sorted([os.path.basename(f) for f in files])
     return render_template('admin.html', config_files=config_files)
 
 @app.route('/api/get_config')
