@@ -35,7 +35,6 @@ class Config:
         'default': SQLAlchemyJobStore(url=f'sqlite:///{os.path.join(DATABASE_DIR, "scheduler.db")}')
     }
 
-
 app.config.from_object(Config())
 
 scheduler = APScheduler()
@@ -198,7 +197,6 @@ def run_update():
 # ==========================================
 #           APScheduler (定时任务) API
 # ==========================================
-
 @app.route('/api/jobs')
 def get_jobs():
     """获取所有定时任务"""
@@ -313,7 +311,6 @@ def delete_job(job_id):
 # ==========================================
 #               日志 & 首页路由
 # ==========================================
-
 # [API] 获取日志内容的接口 (供前端轮询)
 @app.route('/api/log_content')
 def get_log_content():
