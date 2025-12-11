@@ -28,13 +28,9 @@ app.secret_key = 'your_very_secret_and_random_key_for_flask'
 class Config:
     SCHEDULER_API_ENABLED = True
     # 持久化存储：把任务存到 scheduler.db 文件里，重启 Docker 不丢失
-    # SCHEDULER_JOBSTORES = {
-    #     'default': SQLAlchemyJobStore(url='sqlite:///scheduler.db')
-    # }
     SCHEDULER_JOBSTORES = {
-        'default': SQLAlchemyJobStore(url=f'sqlite:///{os.path.join(DATABASE_DIR, "scheduler.db")}')
+        'default': SQLAlchemyJobStore(url='sqlite:///scheduler.db')
     }
-
 
 app.config.from_object(Config())
 
@@ -67,7 +63,7 @@ def admin():
     config_files = []
     if os.path.exists(CONFIG_DIR):
         files = glob.glob(os.path.join(CONFIG_DIR, "*.yaml"))
-        config_files = sorted([os.path.basename(f) for f in files])
+        config_files = [os.path.basename(f) for f in files]
     return render_template('admin.html', config_files=config_files)
 
 @app.route('/api/get_config')
@@ -136,22 +132,26 @@ def run_advanced_task():
 
     # 2. 根据任务类型组装参数
     if task_type == 'javbee':
-        # --- 修改开始 ---
-        date_val = request.form.get('param_jav_date', '').strip()
+        # 获取参数
+        search_val = request.form.get('param_jav_search', '').strip()
         tag_val = request.form.get('param_jav_tag', '').strip()
+        date_val = request.form.get('param_jav_date', '').strip()
         start_page = request.form.get('param_jav_start', '1').strip()
         
         cmd.extend(['--site', site_name])
         
-        # 逻辑：如果有 Tag 就用 Tag，否则看日期，否则默认
-        if tag_val:
+        # 优先级逻辑: Search > Tag > Date
+        if search_val:
+            cmd.extend(['--search', search_val])
+        elif tag_val:
             cmd.extend(['--tag', tag_val])
-            if start_page and start_page != '1':
-                cmd.extend(['--start-page', start_page])
         elif date_val and date_val != 'auto':
             cmd.extend(['--date', date_val])
-        # --- 修改结束 ---
-            
+        
+        # 起始页码是通用的
+        if start_page and start_page != '1':
+            cmd.extend(['--start-page', start_page])
+           
     elif task_type == 'sehuatang':
         page_val = request.form.get('param_sech_page', '').strip()
         cmd.extend(['--site', site_name])
@@ -216,7 +216,7 @@ def add_job():
     
     # 1. 获取通用参数
     task_type = request.form.get('task_type')
-    site_name = request.form.get('param1') # Get param1 from form, save as site_name
+    site_name = request.form.get('param1') # 配置文件名
     cron_exp = request.form.get('cron_expression') 
     
     # 构造要执行的命令参数
@@ -224,15 +224,19 @@ def add_job():
     job_args = [sys.executable, 'run_task.py', task_type]
     job_name = f"Task: {task_type}"
 
-    # 2. According to task type, parse specific parameters
+    # 2. 根据任务类型解析专用参数 (复用 run_advanced_task 的逻辑)
     if task_type == 'javbee':
-        date_val = request.form.get('param_jav_date', '').strip()
+        search_val = request.form.get('param_jav_search', '').strip()
         tag_val = request.form.get('param_jav_tag', '').strip()
+        date_val = request.form.get('param_jav_date', '').strip()
+        start_page = request.form.get('param_jav_start', '1').strip()
         
-        # --- FIX: Use site_name instead of param1 ---
-        job_args.extend(['--site', site_name]) 
+        job_args.extend(['--site', site_name])
         
-        if tag_val:
+        if search_val:
+            job_args.extend(['--search', search_val])
+            job_name += f" (Search: {search_val})"
+        elif tag_val:
             job_args.extend(['--tag', tag_val])
             job_name += f" (Tag: {tag_val})"
         elif date_val and date_val != 'auto':
@@ -240,29 +244,29 @@ def add_job():
             job_name += f" (Date: {date_val})"
         else:
             job_name += f" (Auto Date)"
+
+        if start_page and start_page != '1':
+            job_args.extend(['--start-page', start_page])
         
     elif task_type == 'sehuatang':
         page_val = request.form.get('param_sech_page', '').strip()
-        # --- FIX: Use site_name instead of param1 ---
         job_args.extend(['--site', site_name])
         if page_val:
             if not page_val.startswith('-'):
                 job_args.extend(['--page', page_val])
             else:
-                job_args.extend(page_val.split()) 
+                job_args.extend(page_val.split()) # 支持 --retry-failed 等
         job_name += f" ({site_name})"
 
     elif task_type == 'nyaa':
         start_page = request.form.get('param_nyaa_start', '1').strip()
         end_page = request.form.get('param_nyaa_end', 'auto').strip()
-        # --- FIX: Use site_name instead of param1 ---
         job_args.extend(['--site', site_name])
         job_args.extend(['--start-page', start_page])
         job_args.extend(['--end-page', end_page])
         job_name += f" ({site_name})"
 
     elif task_type == 'retag':
-        # --- FIX: Use site_name instead of param1 ---
         job_args.append(site_name)
         job_name += f" ({site_name})"
 
@@ -525,4 +529,4 @@ def batch_delete():
     return redirect(request.referrer or url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=6246)
+    app.run(debug=True, host='0.0.0.0', port=5002)

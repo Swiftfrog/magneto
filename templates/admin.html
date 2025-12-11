@@ -98,17 +98,30 @@
 
                 <div id="params-javbee" class="task-params active">
                     <div class="form-group">
-                        <label>方式 A: 按日期 (留空则默认为昨天)</label>
+                        <label>方式 A: 按搜索关键词 (优先)</label>
+                        <input type="text" name="param_jav_search" placeholder="例如: ABP, SSIS-123">
+                        <small style="color: #666;">支持搜索番号或演员。如果填写此项，将忽略下方参数。</small>
+                    </div>
+                    
+                    <div style="text-align: center; color: #999; margin: 5px 0;">--- 或 ---</div>
+
+                    <div class="form-group">
+                        <label>方式 B: 按标签 (Tag)</label>
+                        <input type="text" name="param_jav_tag" placeholder="例如: older-sister, uncensored">
+                    </div>
+
+                    <div style="text-align: center; color: #999; margin: 5px 0;">--- 或 ---</div>
+
+                    <div class="form-group">
+                        <label>方式 C: 按日期 (留空则默认为昨天)</label>
                         <input type="text" name="param_jav_date" placeholder="YYYY-MM-DD">
                     </div>
-                    <div style="text-align: center; color: #999; margin: 5px 0;">--- 或 ---</div>
+
+                    <hr style="border-top: 1px dashed #eee; margin: 10px 0;">
+
                     <div class="form-group">
-                        <label>方式 B: 按标签/关键词</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" name="param_jav_tag" placeholder="例如: older-sister" style="flex: 3;">
-                            <input type="number" name="param_jav_start" value="1" placeholder="起始页" style="flex: 1;" min="1">
-                        </div>
-                        <small style="color: #666;">注意：如果填写了标签，将忽略日期参数。</small>
+                        <label>起始页码 (通用):</label>
+                        <input type="number" name="param_jav_start" value="1" min="1" style="width: 100px;">
                     </div>
                 </div>
 
