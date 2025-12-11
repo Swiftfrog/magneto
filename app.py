@@ -135,7 +135,7 @@ def run_advanced_task():
     cmd = [sys.executable, 'run_task.py', task_type]
 
     # 2. 根据任务类型组装参数
-	if task_type == 'javbee':
+    if task_type == 'javbee':
         # 获取参数
         search_val = request.form.get('param_jav_search', '').strip()
         tag_val = request.form.get('param_jav_tag', '').strip()
@@ -229,7 +229,7 @@ def add_job():
     job_name = f"Task: {task_type}"
 
     # 2. According to task type, parse specific parameters
-	if task_type == 'javbee':
+    if task_type == 'javbee':
         search_val = request.form.get('param_jav_search', '').strip()
         tag_val = request.form.get('param_jav_tag', '').strip()
         date_val = request.form.get('param_jav_date', '').strip()
