@@ -36,7 +36,19 @@ def extract_data(html_content, url, selectors, base_url, tag_rules):
             details['item_number'], details['title'] = (match.group(1), content[match.end():].strip()) if match else ('N/A', content)
         
         magnet_tag = soup.select_one(selectors['magnet_link'])
-        if magnet_tag: details['magnet_link'] = magnet_tag.get_text(strip=True)
+        if magnet_tag:
+            # 1. 获取包含换行符的所有文本
+            raw_text = magnet_tag.get_text(separator=" ", strip=True)
+            
+            # 2. 使用正则寻找 magnet 链接 (标准特征: magnet:?xt=urn:btih:hash)
+            # 兼容 32位(base32) 和 40位(hex) 哈希
+            magnet_match = re.search(r'(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40})', raw_text)
+            
+            if magnet_match:
+                details['magnet_link'] = magnet_match.group(1)
+            else:
+                # 如果正则没匹配到，才回退到由 strip 处理的原始文本
+                details['magnet_link'] = raw_text
         
         cover_selector = selectors.get('cover_image')
         if cover_selector:

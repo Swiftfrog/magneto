@@ -19,7 +19,7 @@ selectors:
     enter_button: "a.enter-btn"
     publish_time: "em[id^='authorposton']"
     meta_keywords: "meta[name='keywords']"
-    magnet_link: "div.blockcode ol li"
+    magnet_link: "div.blockcode"
     post_content_container: "td.t_f"
     cover_image: "td.t_f img.zoom"
     size_keyword: "影片容量|影片大小"
